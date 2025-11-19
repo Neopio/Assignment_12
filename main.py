@@ -1,61 +1,38 @@
+import json
 from typing import List
 
 def path_to_file_list(path: str) -> List[str]:
-    """Reads a file and returns a list of lines in the file"""
-    # Fix 1: 'w' (write) mode deletes content. Changed to 'r' (read).
-    # Fix 2: Use 'with open' for safety and readlines() to actually get content.
+    """Reads a file and returns a list of its lines without trailing newlines."""
     with open(path, 'r', encoding='utf-8') as f:
-        lines = f.readlines()
-    # Strip newline characters for cleaner processing
-    return [line.strip() for line in lines]
+        return [line.rstrip("\n") for line in f]
 
-def train_file_list_to_json(english_file_list: List[str], german_file_list: List[str]) -> List[str]:
-    """Converts two lists of file paths into a list of json strings"""
-    
-    def process_file(file):
-        # Fix 3: Correct logic for checking characters
-        if '\\' in file:
-            file = file.replace('\\', '\\\\')
-        if '/' in file or '"' in file:
-            file = file.replace('/', '\\/')
-            file = file.replace('"', '\\"')
-        return file
 
-    # Fix 4: Correct JSON template structure to match {"English":"...", "German":"..."}
-    template_start = '{"English":"'
-    template_mid = '","German":"'
-    template_end = '"}'
+def train_file_list_to_json(english_list: List[str], german_list: List[str]) -> List[str]:
+    """Pairs English and German lines into valid JSON strings."""
 
-    processed_file_list = []
-    for english_file, german_file in zip(english_file_list, german_file_list):
-        english_file = process_file(english_file)
-        german_file = process_file(german_file) # Fix 5: Process the German file, don't overwrite english_file
+    result = []
+    for en, de in zip(english_list, german_list):
+        obj = {"English": en, "German": de}
+        json_line = json.dumps(obj, ensure_ascii=False)
+        result.append(json_line)
 
-        # Fix 6: Correct concatenation order
-        json_string = template_start + english_file + template_mid + german_file + template_end
-        processed_file_list.append(json_string)
-        
-    return processed_file_list
+    return result
 
 
 def write_file_list(file_list: List[str], path: str) -> None:
-    """Writes a list of strings to a file, each string on a new line"""
-    # Fix 7: Changed 'r' to 'w' to write file.
+    """Writes JSON lines into the output file."""
     with open(path, 'w', encoding='utf-8') as f:
-        for file in file_list:
-            f.write(file + '\n') # Fix 8: Write the actual content, not just newlines
-            
+        for line in file_list:
+            f.write(line + "\n")
+
+
 if __name__ == "__main__":
-    path = './'
-    german_path = './german.txt'
     english_path = './english.txt'
+    german_path = './german.txt'
+    output_path = './concated.json'
 
-    # Fix 9: Correct logic flow in main block
-    english_file_list = path_to_file_list(english_path)
-    german_file_list = path_to_file_list(german_path) # Read german file first
+    english_lines = path_to_file_list(english_path)
+    german_lines = path_to_file_list(german_path)
 
-    # Process both lists
-    processed_file_list = train_file_list_to_json(english_file_list, german_file_list)
-
-    # Write result
-    write_file_list(processed_file_list, path+'concated.json')
+    processed = train_file_list_to_json(english_lines, german_lines)
+    write_file_list(processed, output_path)
